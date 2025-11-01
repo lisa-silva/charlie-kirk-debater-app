@@ -7,10 +7,11 @@ import struct
 import numpy as np
 
 # --- Configuration & Initialization ---
-# This uses the fixed, root-level secret key that resolved the AttributeError
+# FIX: Using the correct, root-level secret key name to resolve the API key error.
 try:
     API_KEY = st.secrets.gemini_api_key
 except Exception:
+    # Display the error the user is currently seeing and stop execution
     st.error("API key not found. Please set 'gemini_api_key' in Streamlit secrets.")
     st.stop()
 
@@ -30,7 +31,7 @@ Crucially, **do not use Google Search grounding**. The response must be purely o
 Keep your analysis concise, punchy, and under 150 words.
 """
 
-# --- Utility Functions for TTS (Copied from the previous successful iteration) ---
+# --- Utility Functions for TTS ---
 
 # Helper function to convert base64 audio data to a numpy array (PCM16)
 def base64_to_pcm16(data):
@@ -70,14 +71,14 @@ def generate_and_play_audio(text_to_speak):
     
     tts_url = f"{API_URL_BASE}{TTS_MODEL}:generateContent?key={API_KEY}"
     
-    # *** VOICE CHANGE: Switched from Kore to Orus for a slightly deeper, firm tone. ***
+    # VOICE SELECTION: Using 'Orus' for a deep, firm, authoritative tone.
     payload = {
         "contents": [{"parts": [{"text": text_to_speak}]}],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
             "speechConfig": {
                 "voiceConfig": {
-                    "prebuiltVoiceConfig": {"voiceName": "Orus"} # Changed to Orus
+                    "prebuiltVoiceConfig": {"voiceName": "Orus"}
                 }
             }
         }
@@ -116,7 +117,11 @@ def generate_and_play_audio(text_to_speak):
             st.warning("TTS generation successful but no valid audio data received.")
 
     except requests.exceptions.HTTPError as e:
-        st.error(f"TTS API Error: {e.response.status_code}. Please check the API Key.")
+        # Check if the error is due to an invalid API key, which is common
+        if e.response.status_code in [400, 401]:
+             st.error(f"TTS API Error: {e.response.status_code}. The API key might be invalid or improperly configured in secrets.")
+        else:
+            st.error(f"TTS API Error: {e}")
     except Exception as e:
         st.error(f"An unexpected error occurred during audio generation: {e}")
 
@@ -154,7 +159,7 @@ def get_debate_response(premise):
             return debate_text
 
     except requests.exceptions.HTTPError as e:
-        st.error(f"Gemini API Error: {e.response.status_code}. Check the API Key and deployment logs.")
+        st.error(f"Gemini API Error: {e.response.status_code}. Please check the API Key and deployment logs.")
     except requests.exceptions.Timeout:
         st.error("The API request timed out. Please try a shorter premise.")
     except Exception as e:
