@@ -32,7 +32,7 @@ def pcm_to_wav(pcm16, sample_rate, num_channels=1, bits_per_sample=16):
     Converts raw 16-bit PCM (NumPy array) data into a WAV file format (bytes).
     This function replaces the previous incorrect JavaScript ArrayBuffer logic.
     """
-    
+
     # Ensure input is a NumPy array of type int16 (signed 16-bit PCM)
     if not isinstance(pcm16, np.ndarray) or pcm16.dtype != np.int16:
         pcm16 = np.frombuffer(pcm16, dtype=np.int16)
@@ -58,7 +58,7 @@ def get_debater_audio(user_premise):
     Calls the Gemini API (TTS and Text) to get a vocalized and grounded response.
     """
     # 1. Generate text response and audio data simultaneously
-    
+
     # System instruction focuses on the Charlie Kirk persona
     system_instruction = f"You are {DEBATER_PERSONA}"
 
@@ -88,13 +88,13 @@ def get_debater_audio(user_premise):
         response = requests.post(f"{API_URL}?key={API_KEY}", headers=headers, json=payload)
         response.raise_for_status()
         result = response.json()
-        
+
     except requests.exceptions.RequestException as e:
         st.error(f"API Request failed: {e}")
         return None, "Error: Failed to connect to API."
 
     candidate = result.get('candidates', [{}])[0]
-    
+
     # 2. Extract Text
     text_part = next((p for p in candidate.get('content', {}).get('parts', []) if 'text' in p), {})
     generated_text = text_part.get('text', "Sorry, I couldn't generate a text response.")
@@ -102,18 +102,19 @@ def get_debater_audio(user_premise):
     # 3. Extract Audio (PCM data)
     audio_part = next((p for p in candidate.get('content', {}).get('parts', []) if 'inlineData' in p), {})
     inline_data = audio_part.get('inlineData', {})
-    
+
     if inline_data and 'data' in inline_data:
         # The API returns base64-encoded PCM audio data
         pcm_base64 = inline_data['data']
+        # Note: We must use st.runtime.legacy_caching.rehydrate for base64 decoding in Streamlit's cache
         pcm_bytes = np.frombuffer(st.runtime.legacy_caching.rehydrate(pcm_base64), dtype=np.int16)
-        
+
         # 4. Convert PCM bytes to WAV format
         # The sample rate for flash-preview-tts is 24000 Hz
         wav_data = pcm_to_wav(pcm_bytes, sample_rate=24000)
-        
+
         return wav_data, generated_text
-    
+
     return None, generated_text
 
 
@@ -153,4 +154,33 @@ if st.button("Challenge My Premise", type="primary", use_container_width=True):
             st.error("Could not generate audio. Please check the API response in the console for details.")
 
 st.markdown("---")
+
+# --- SPONSORSHIP SECTION ---
+# NOTE: Replace 'YourUserName' with your actual username on the platform you choose.
+st.markdown("""
+<style>
+.stLinkButton > a {
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    color: white !important;
+    background-color: #FF5E5B; /* A nice red/orange */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+.stLinkButton > a:hover {
+    background-color: #E04C49;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# UPDATED BUTTON TEXT: "Buy me a Honey Cinnamon tea"
+st.markdown(
+    '<a href="https://www.buymeacoffee.com/YourUserName" target="_blank" class="stLinkButton">☕ Buy me a Honey Cinnamon tea!</a>',
+    unsafe_allow_html=True
+)
+# --- END SPONSORSHIP SECTION ---
+
 st.markdown(f"")
