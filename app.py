@@ -76,7 +76,8 @@ def get_debater_audio(user_premise):
                 }
             }
         },
-        "tools": [GROUNDING_TOOL], # Enable Google Search for grounding
+        "tools": [GROUNDING_TOOL],
+        # Enable Google Search for grounding
     }
 
     headers = {
